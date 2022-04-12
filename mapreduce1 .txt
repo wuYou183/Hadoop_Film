@@ -1,0 +1,22 @@
+from mrjob.job import MRJob
+from mrjob.step import MRStep
+
+class Item_simi(MRJob):
+	def mymapper(self,key,line):
+		user,item,pingfen=line.split('\t')[0:3]
+		yield user,(item,int(pingfen))
+
+	def myreducer(self,key,values):
+		count=0
+		sum=0
+		result=[]
+		for item,pingfen in values:
+			count+=1
+			result.append((item,pingfen))
+		yield key,(count,result)
+
+	def steps(self):
+		return [MRStep(mapper=self.mymapper,reducer=self.myreducer)]
+
+if __name__=='__main__':
+	Item_simi.run()

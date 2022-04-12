@@ -1,0 +1,16 @@
+from mrjob.job import MRJob
+from mrjob.step import MRStep
+
+class recommend(MRJob):
+	def mymapper(self,key,line):
+		item,simirate=line.split('\t')
+		yield item,float(simirate)
+
+	def myreducer(self,key,values):
+		yield key,sum(values)
+
+	def steps(self):
+		return [MRStep(mapper=self.mymapper,reducer=self.myreducer)]
+
+if __name__=='__main__':
+	recommend.run()

@@ -1,0 +1,46 @@
+from mrjob.job import MRJob
+from itertools import combinations
+from math import sqrt
+from mrjob.job import MRJob
+from mrjob.step import MRStep
+import json
+
+class Step2(MRJob):
+    def pairwise_items(self,user_id,values):
+        js=json.loads(values.split('\t')[1])
+        number = js[0]
+        ratings = js[1]
+        for i in range(number):
+            i=int(i)
+            item1=ratings[i]
+            for j in range(number):
+                j=int(j)
+                if j>i:
+                    item2=ratings[j]
+                    yield (item1[0],item2[0]),(item1[1],item2[1])
+
+    def calculate_similarity(self,pair_key,lines):
+        sum_xx,sum_xy,sum_yy,sum_x,sum_y,n=(0,0,0,0,0,0)
+        item_pair,co_ratings = pair_key,lines
+        item_xname,item_yname= item_pair
+        for item_x,item_y in co_ratings:
+            sum_xx+=item_x*item_x
+            sum_yy+=item_y*item_y
+            sum_xy+=item_x*item_y
+            sum_y+=item_y
+            sum_x+=item_x
+            n+=1
+        similarity=self.normalized_correlation(n,sum_xy,sum_x,sum_y,sum_xx,sum_yy)
+        yield (item_xname,item_yname),similarity
+
+    def steps(self):
+        return[MRStep(mapper=self.pairwise_items,reducer=self.calculate_similarity)]
+
+    def normalized_correlation(self,n,sum_xy,sum_x,sum_y,sum_xx,sum_yy):
+        numerator = (n*sum_xy-sum_x*sum_y)
+        denominator = sqrt(n*sum_xx-sum_x*sum_x)*sqrt(n*sum_yy-sum_y*sum_y) + 1.0
+        similarity = numerator/denominator
+        return similarity
+
+if __name__ == "__main__":
+    Step2.run()
